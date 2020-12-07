@@ -4,11 +4,17 @@ import random
 from fastapi import APIRouter
 import pandas as pd
 from pydantic import BaseModel, Field, validator
+####################For Gas Models##############################################
 from typing import Optional
+import pickle
+import os
+from sklearn.linear_model import LinearRegression
+################################################################################
 
 log = logging.getLogger(__name__)
 router = APIRouter()
 
+GAS_MODELS = {}
 
 class Item(BaseModel):
     """Use this data model to parse the request body JSON."""
@@ -39,6 +45,32 @@ class GasItem(BaseModel):
     mpg: Optional[float] = None
 
     # TODO: Put in validators here. We are doing this live for first attempt
+
+@router.on_event('startup')
+async def load_models():
+    '''
+    Loading all the gas models into the global space on startup.
+    '''
+    global GAS_MODELS
+
+    # os safe file paths
+    # docker-compose pwd is /usr/src/app. then our app is another directory up
+    # for the less than intuitive file path /usr/src/app/app/gas_models/
+    newengland = os.path.join(os.getcwd(),'app', 'gas_models', 'new_england_gas_model.pckl')
+    centralatlantic = os.path.join(os.getcwd(),'app', 'gas_models', 'central_atlantic_gas_model.pckl')
+    loweratlantic = os.path.join(os.getcwd(),'app', 'gas_models', 'lower_atlantic_gas_model.pckl')
+    midwest = os.path.join(os.getcwd(),'app', 'gas_models', 'midwest_gas_model.pckl')
+    gulfcoast = os.path.join(os.getcwd(),'app', 'gas_models', 'gulf_coast_gas_model.pckl')
+    rockymnt = os.path.join(os.getcwd(),'app', 'gas_models', 'rocky_mountain_gas_model.pckl')
+    westcoast = os.path.join(os.getcwd(),'app', 'gas_models', 'west_coast_gas_model.pckl')
+
+    GAS_MODELS['1a'] = pickle.load(open(newengland, 'rb'))
+    GAS_MODELS['1b'] = pickle.load(open(centralatlantic, 'rb'))
+    GAS_MODELS['1c'] = pickle.load(open(loweratlantic, 'rb'))
+    GAS_MODELS['2'] = pickle.load(open(midwest, 'rb'))
+    GAS_MODELS['3'] = pickle.load(open(gulfcoast, 'rb'))
+    GAS_MODELS['4'] = pickle.load(open(rockymnt, 'rb'))
+    GAS_MODELS['5'] = pickle.load(open(westcoast, 'rb'))
 
 @router.post('/predict')
 async def predict(item: Item):
@@ -91,7 +123,8 @@ async def predict_gas(item: GasItem):
 @router.get('/test')
 async def test():
     '''
-    A very simple test get request
+    A very simple test get request used for ad hoc testing. 
+    TODO: Remove once branch is complete
     '''
 
-    return 'Test worked'
+    return str(GAS_MODELS['1a'].predict([[5, 25, 2021]]))
