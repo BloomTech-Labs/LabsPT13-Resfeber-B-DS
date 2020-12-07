@@ -127,4 +127,4 @@ async def test():
     TODO: Remove once branch is complete
     '''
 
-    return str(GAS_MODELS['1a'].predict([[5, 25, 2021]]))
+    return os.getenv('MAPBOX_TOKEN')
