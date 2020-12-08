@@ -149,7 +149,7 @@ async def test():
     TODO: Remove once branch is complete
     '''
 
-    return region_gas_predictions('4', 10, 15, 2021)
+    return str(split_by_region('-122.3321,47.6062;-116.2023,43.6150;-115.1398, 36.1699'))
 
 def coord_to_state(coord):
     '''
@@ -221,10 +221,18 @@ def split_by_region(coords):
     '''
     A helper function that takes the entire route, and splits it into sections
     by PADD region. Returns a dictionary of lists with corresponding regions 
-    and distance traveled in each region. Shaped like
+    and distance traveled in each region. 
+    
+    ### Params
+    - `coords`: a string with long,latitude pairs separated by semicolons. 
+    formatted like this:'-122.3321,47.6062;-116.2023,43.6150;-115.1398, 36.1699'
+
+    ### Returns
+    - a dictionary containing miles traveled in a region, and the corresponding
+    region. Formatted like this:
     {
-        'distances': [12.4, 40.9, 400.4],
-        'regions': ['5', '4', '5']
+    'distances': [12.4, 40.9, 400.4],
+    'regions': ['5', '4', '5']
     }
     '''
     route = {'coordinates': coords,
@@ -241,6 +249,8 @@ def split_by_region(coords):
     cur_reg = 0
     reg_dist_map = {'distances': [], 'regions': []}
 
+    # TODO: rethink/optimize this some. It takes 5 seconds to run locally.
+    
     # a route is made up of multiple legs determined by destinations
     for leg in trip.json()['routes'][0]['legs']:
         # legs are made up of steps it takes to travel the leg
