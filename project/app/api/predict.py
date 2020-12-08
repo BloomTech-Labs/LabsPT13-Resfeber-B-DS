@@ -141,6 +141,26 @@ async def predict_gas(item: GasItem):
     - `prediction`: a float with the total cost of of gas for the entire length
     of the trip.
     '''
+    month = item.month
+    day = item.day
+    year = item.year
+    meter_to_mile = 0.00062137119224
+    mpg = item.mpg
+    total = 0
+    distance_in_region = split_by_region(item.coords)
+
+    for i, distance in enumerate(distance_in_region['distances']):
+        region = distance_in_region['regions'][i]
+        miles = distance * meter_to_mile
+        regional_rate = region_gas_predictions(region, month, day, year)
+        total += (miles / mpg) * regional_rate
+
+        # print(region)
+        # print(miles)
+        # print(regional_rate)
+
+    return round(total, 2)
+
 
 @router.get('/test')
 async def test():
@@ -228,7 +248,7 @@ def split_by_region(coords):
     formatted like this:'-122.3321,47.6062;-116.2023,43.6150;-115.1398, 36.1699'
 
     ### Returns
-    - a dictionary containing miles traveled in a region, and the corresponding
+    - a dictionary containing meters traveled in a region, and the corresponding
     region. Formatted like this:
     {
     'distances': [12.4, 40.9, 400.4],
@@ -250,7 +270,7 @@ def split_by_region(coords):
     reg_dist_map = {'distances': [], 'regions': []}
 
     # TODO: rethink/optimize this some. It takes 5 seconds to run locally.
-    
+
     # a route is made up of multiple legs determined by destinations
     for leg in trip.json()['routes'][0]['legs']:
         # legs are made up of steps it takes to travel the leg
