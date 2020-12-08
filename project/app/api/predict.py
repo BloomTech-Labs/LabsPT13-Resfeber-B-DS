@@ -149,7 +149,7 @@ async def test():
     TODO: Remove once branch is complete
     '''
 
-    return coord_to_state((-111.0429, 45.6770))
+    return coord_to_region((-111.0429, 45.6770))
 
 def coord_to_state(coord):
     '''
@@ -157,7 +157,7 @@ def coord_to_state(coord):
     MapBox api. USA coordinates only.
 
     ### Params
-    - coord: a tuple of floats representing a long, lat geocoordinates
+    - coord: a tuple of floats representing a (long, lat) pair of geocoordinates
 
     ### Returns
     - A string with the name of the state the coordinates are within
@@ -178,3 +178,21 @@ def coord_to_state(coord):
             return feature['text']
     
     return 'state not found'
+
+def coord_to_region(coord):
+    '''
+    A helper function that takes a coordinate pair and returns the appropriate
+    PADD region identifier key, ie 1a, 3, 1c, etc
+
+    ### Params
+    - coord: a tuple of floats representing a (long, lat) pair of geocoordinates
+
+    ### Returns
+    - A string with the PADD region identifier
+    '''
+    state = coord_to_state(coord)
+    for key in PADDS:
+        if state in PADDS[key]:
+            return key
+        
+    return 'Not in padds'
