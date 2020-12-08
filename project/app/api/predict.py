@@ -60,11 +60,11 @@ class GasItem(BaseModel):
     Use this data model to parse the request body JSON for gas predictions.
     '''
 
-    coords: str = Field(..., example='long,lat;long,lat;long,lat')
+    coords: str = Field(..., example='-122.3321,47.6062;-116.2023,43.6150;-115.1398, 36.1699')
     month: int = Field(..., example = 7)
     day: int = Field(..., example = 13)
     year: int = Field(..., example = 2021)
-    mpg: Optional[float] = None
+    mpg: Optional[float] = 27.0
 
     # TODO: Put in validators here. We are doing this live for first attempt
 
@@ -127,18 +127,18 @@ async def predict_gas(item: GasItem):
     Predicts the total cost of gas for a road trip between coordinates. 
 
     ### Request Body
-    - 'coords': a string of semicolon separated coordinate pairs formated as 
+    - `coords`: a string of semicolon separated coordinate pairs formated as 
     'long,lat;long,lat;long,lat'. Each coordinate pair represents a stop on the 
     user's road trip.
-    - 'month': an integer containing the month of the road trip
-    - 'day': an integer containing the day of the road trip
-    - 'year': an integer containing the year of the road trip
-    - 'mpg': an optional float specifying the miles per gallon of the vehicle
+    - `month`: an integer containing the month of the road trip
+    - `day`: an integer containing the day of the road trip
+    - `year`: an integer containing the year of the road trip
+    - `mpg`: an __optional__ float for the miles per gallon of the vehicle
     being used on the road trip. If no value is passed, 27 mpg will be used as
     a default value
 
     ### Response
-    - 'prediction': a float with the total cost of of gas for the entire length
+    - `prediction`: a float with the total cost of of gas for the entire length
     of the trip.
     '''
 
@@ -157,7 +157,7 @@ def coord_to_state(coord):
     MapBox api. USA coordinates only.
 
     ### Params
-    - coord: a tuple of floats representing a (long, lat) pair of geocoordinates
+    - `coord`: a tuple of floats representing a (long, lat) pair of geocoordinates
 
     ### Returns
     - A string with the name of the state the coordinates are within
@@ -185,7 +185,7 @@ def coord_to_region(coord):
     PADD region identifier key, ie 1a, 3, 1c, etc
 
     ### Params
-    - coord: a tuple of floats representing a (long, lat) pair of geocoordinates
+    - `coord`: a tuple of floats representing a (long, lat) pair of geocoordinates
 
     ### Returns
     - A string with the PADD region identifier
@@ -203,10 +203,10 @@ def region_gas_predictions(region, month, day, year):
     predicted price per gallong for gas
 
     ### Params
-    - region: A string containing the PADD code for the region
-    - month: an integer with the numeric month
-    - day: an integer with the numeric day in the month
-    - year: an integer with the four digit year
+    - `region`: A string containing the PADD code for the region
+    - `month`: an integer with the numeric month
+    - `day`: an integer with the numeric day in the month
+    - `year`: an integer with the four digit year
 
     ### Returns
     - a float representing the price per gallon for gasoline in that region on
@@ -215,5 +215,56 @@ def region_gas_predictions(region, month, day, year):
     # TODO: check for missing regions or 'Not in padds'
     # TODO: validate month, day, year for inappropriate input
     # TODO: Throw a 500 error, and meaningful error log
-    print(GAS_MODELS[region])
     return GAS_MODELS[region].predict([[month, day, year]])[0]
+
+def split_by_region(coords):
+    '''
+    A helper function that takes the entire route, and splits it into sections
+    by PADD region. Returns a dictionary of lists with corresponding regions 
+    and distance traveled in each region. Shaped like
+    {
+        'distances': [12.4, 40.9, 400.4],
+        'regions': ['5', '4', '5']
+    }
+    '''
+    route = {'coordinates': coords,
+            'steps': 'true'}
+
+    token = os.environ.get('MAPBOX_TOKEN')
+    url = 'https://api.mapbox.com/directions/v5/mapbox/driving?access_token='
+    url += token
+
+    trip = requests.post(url, data = route)
+
+    distance = 0
+    prev_reg = 0
+    cur_reg = 0
+    reg_dist_map = {'distances': [], 'regions': []}
+
+    # a route is made up of multiple legs determined by destinations
+    for leg in trip.json()['routes'][0]['legs']:
+        # legs are made up of steps it takes to travel the leg
+        for step in leg['steps']:
+            prev_reg = cur_reg
+            
+            # collect distance traveled
+            distance += step['distance']
+            
+            # check the end location of each step.manuever
+            # TODO is 'intersections' really the appropriate place to look?
+            # explore some more
+            coords = step['intersections'][-1]['location']
+            
+            cur_reg = coord_to_region(coords)
+            
+            if prev_reg == 0:
+                prev_reg = cur_reg
+            elif cur_reg != prev_reg:
+                reg_dist_map['distances'].append(distance)
+                distance = 0
+                reg_dist_map['regions'].append(prev_reg)
+
+    reg_dist_map['distances'].append(distance)
+    reg_dist_map['regions'].append(prev_reg)
+
+    return reg_dist_map
