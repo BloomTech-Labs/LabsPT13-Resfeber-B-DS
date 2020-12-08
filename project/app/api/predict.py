@@ -149,7 +149,7 @@ async def test():
     TODO: Remove once branch is complete
     '''
 
-    return coord_to_region((-111.0429, 45.6770))
+    return region_gas_predictions('4', 10, 15, 2021)
 
 def coord_to_state(coord):
     '''
@@ -196,3 +196,24 @@ def coord_to_region(coord):
             return key
         
     return 'Not in padds'
+
+def region_gas_predictions(region, month, day, year):
+    '''
+    A helper function that takes a PADD region and the date and returns the 
+    predicted price per gallong for gas
+
+    ### Params
+    - region: A string containing the PADD code for the region
+    - month: an integer with the numeric month
+    - day: an integer with the numeric day in the month
+    - year: an integer with the four digit year
+
+    ### Returns
+    - a float representing the price per gallon for gasoline in that region on
+    that date
+    '''
+    # TODO: check for missing regions or 'Not in padds'
+    # TODO: validate month, day, year for inappropriate input
+    # TODO: Throw a 500 error, and meaningful error log
+    print(GAS_MODELS[region])
+    return GAS_MODELS[region].predict([[month, day, year]])[0]
