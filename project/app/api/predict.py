@@ -9,12 +9,34 @@ from typing import Optional
 import pickle
 import os
 from sklearn.linear_model import LinearRegression
+import requests
 ################################################################################
 
 log = logging.getLogger(__name__)
 router = APIRouter()
 
 GAS_MODELS = {}
+PADDS = {'1a': 
+             ['Maine', 'New Hampshire', 'Vermont', 'Massachusetts', 
+             'Connecticut', 'Rhode Island'],
+         '1b':
+             ['New York', 'New Jersey', 'Pennsylvania', 'Deleware', 'Maryland'],
+         '1c':
+             ['West Virginia', 'Virginia', 'North Carolina', 'South Carolina',
+             'Georgia', 'Florida'],
+         '2':
+             ['North Dakota', 'South Dakota', 'Nebraska', 'Kansas', 'Oklahoma',
+             'Minnesota', 'Iowa', 'Missouri', 'Wisconsin', 'Illinois', 
+             'Tennessee', 'Kentucky', 'Indiana', 'Ohio', 'Michigan'],
+         '3':
+             ['New Mexico', 'Texas', 'Arkansas', 'Louisiana', 'Mississippi', 
+             'Alabama'],
+         '4':
+             ['Idaho', 'Utah', 'Montana', 'Wyoming', 'Colorado'],
+         '5':
+             ['Washington', 'Oregon', 'California', 'Nevada', 'Arizona', 
+             'Alaska', 'Hawaii']
+        }
 
 class Item(BaseModel):
     """Use this data model to parse the request body JSON."""
@@ -127,4 +149,32 @@ async def test():
     TODO: Remove once branch is complete
     '''
 
-    return os.getenv('MAPBOX_TOKEN')
+    return coord_to_state((-111.0429, 45.6770))
+
+def coord_to_state(coord):
+    '''
+    A helper function that converts coordinates into state names using the 
+    MapBox api. USA coordinates only.
+
+    ### Params
+    - coord: a tuple of floats representing a long, lat geocoordinates
+
+    ### Returns
+    - A string with the name of the state the coordinates are within
+    '''
+    base_url = 'https://api.mapbox.com/geocoding/v5/mapbox.places/'
+    token = os.environ.get('MAPBOX_TOKEN')
+    constructed_url = base_url + str(coord[0]) + ',' + str(coord[1]) + '.json?access_token=' + token
+    
+    # search for the region feature
+    resp = requests.get(constructed_url).json()['features']
+
+    # TODO: add retry logic incase this service is down
+    # TODO: Consider rate limit logic here
+    # TODO: try except for coords outside of the US
+    
+    for feature in resp:
+        if 'region' in feature['place_type']:
+            return feature['text']
+    
+    return 'state not found'
