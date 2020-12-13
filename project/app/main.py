@@ -5,8 +5,8 @@ import uvicorn
 from app.api import predict, viz
 
 app = FastAPI(
-    title='YOUR-PRODUCT-TEAM-NAME DS API',
-    description='Replace this placeholder text',
+    title='Resfeber B DS API',
+    description='An api for serving up gas cost predictions, arbnb price price predictions, and visulalizations for both.',
     version='0.1',
     docs_url='/',
 )
