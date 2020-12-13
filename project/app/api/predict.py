@@ -39,23 +39,6 @@ PADDS = {'1a':
              'Alaska', 'Hawaii']
         }
 
-class Item(BaseModel):
-    """Use this data model to parse the request body JSON."""
-
-    x1: float = Field(..., example=3.14)
-    x2: int = Field(..., example=-42)
-    x3: str = Field(..., example='banjo')
-
-    def to_df(self):
-        """Convert pydantic object to pandas dataframe with 1 row."""
-        return pd.DataFrame([dict(self)])
-
-    @validator('x1')
-    def x1_must_be_positive(cls, value):
-        """Validate that x1 is a positive number."""
-        assert value > 0, f'x1 == {value}, must be > 0'
-        return value
-
 class GasItem(BaseModel):
     '''
     Use this data model to parse the request body JSON for gas predictions.
@@ -168,34 +151,7 @@ async def load_models():
     GAS_MODELS['4'] = pickle.load(open(rockymnt, 'rb'))
     GAS_MODELS['5'] = pickle.load(open(westcoast, 'rb'))
 
-@router.post('/predict')
-async def predict(item: Item):
-    """
-    Make random baseline predictions for classification problem 🔮
-
-    ### Request Body
-    - `x1`: positive float
-    - `x2`: integer
-    - `x3`: string
-
-    ### Response
-    - `prediction`: boolean, at random
-    - `predict_proba`: float between 0.5 and 1.0, 
-    representing the predicted class's probability
-
-    Replace the placeholder docstring and fake predictions with your own model.
-    """
-
-    X_new = item.to_df()
-    log.info(X_new)
-    y_pred = random.choice([True, False])
-    y_pred_proba = random.random() / 2 + 0.5
-    return {
-        'prediction': y_pred,
-        'probability': y_pred_proba
-    }
-
-@router.post('/predict/gas')
+@router.post('/predict/gas', tags = ['Predictions'])
 async def predict_gas(item: GasItem):
     '''
     Predicts the total cost of gas for a road trip between coordinates. 
@@ -234,14 +190,15 @@ async def predict_gas(item: GasItem):
     resp['total'] = round(total, 2)
     return resp
 
-@router.get('/test')
-async def test():
-    '''
-    A very simple test get request used for ad hoc testing. 
-    TODO: Remove once branch is complete
-    '''
+# @router.get('/test')
+# async def test():
+#     '''
+#     A very simple test get request used for ad hoc testing. Good for helper
+#     functions
+#     TODO: Remove once branch is complete
+#     '''
 
-    return str(split_by_region('-122.3321,47.6062;-116.2023,43.6150;-115.1398,36.1699'))
+#     return str(split_by_region('-122.3321,47.6062;-116.2023,43.6150;-115.1398,36.1699'))
 
 def coord_to_state(coord):
     '''

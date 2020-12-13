@@ -7,7 +7,7 @@ from app.api import predict, viz
 app = FastAPI(
     title='Resfeber B DS API',
     description='An api for serving up gas cost predictions, arbnb price price predictions, and visulalizations for both.',
-    version='0.1',
+    version='1.0',
     docs_url='/',
 )
 
