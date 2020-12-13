@@ -69,6 +69,67 @@ class GasItem(BaseModel):
     mpg: Optional[float] = Field(27.0, gt = 0.0, example = 27.0)
 
     # ref https://pydantic-docs.helpmanual.io/usage/validators/
+    @validator('coords')
+    def coords_greater_than_one(cls, v):
+        '''Validate there are more than one coordinate passed in'''
+        split = v.split(';')
+        assert len(split) >= 2, "Not enough coordinates passed in. Ensure coordinates follow the 'long,lat:long,lat' format"
+        return v
+
+    @validator('coords')
+    def coords_are_paired(cls, v):
+        '''Validate coordinates pairs are two values exactly'''
+        split = v.split(';')
+
+        split = [tuple(i.split(',')) for i in split]
+        
+        for pair in split:
+            assert len(pair) == 2, f'Coordinate pairs must be exactly 2 values. {pair} has to many or to few values'
+        return v
+
+    @validator('coords')
+    def coords_are_numeric(cls, v):
+        '''Validates that coordinate strings are numeric'''
+        split = v.replace(';', ',').split(',')
+        for num in split:
+            msg = f'Coordinates must be numeric. {num} is not numeric'
+            clean_num = num.strip().lstrip('-').replace('.', '')
+            assert clean_num.isdecimal(), msg
+        return v
+
+    @validator('coords')
+    def coords_in_range(cls, v):
+        '''Validates coordinates are within -180 and 180 long, -90 and 90 lat'''
+        split = v.split(';')
+        split = [i.split(',') for i in split]
+
+        for pair in split:
+            # This isn't a big deal, because coords_are_paired has already run
+            # and if there were anything other than exactly two values, it would
+            # have been caught
+            assert float(pair[0]) >= -180, f'Longitude must be greater than -180 ({pair[0]}, {pair[1]})'
+            assert float(pair[0]) <= 180, f'Longitude must be less than 180 ({pair[0]}, {pair[1]})'
+            assert float(pair[1]) >= -90, f'Latitude must be greater than -90 ({pair[0]}, {pair[1]})'
+            assert float(pair[1]) <= 90, f'Latitude must be less than 90 ({pair[0]}, {pair[1]})'
+        return v
+
+    @validator('coords')
+    def coords_in_usa(cls, v):
+        '''Validates coordinate pairs are roughly within the continental
+        United States'''
+        lon = [-124.785, -66.947028]
+        lat = [24.446667, 49.384472]
+        split = v.split(';')
+        split = [i.split(',') for i in split]
+        
+        for pair in split:
+            # coords_are_paired has already run. Pairs are exactly 2
+            assert float(pair[0]) > lon[0], f'Longitude is west of the contiguous United States ({pair[0]}, {pair[1]})'
+            assert float(pair[0]) < lon[1], f'Longitude is east of the contiguous United States ({pair[0]}, {pair[1]})'
+            assert float(pair[1]) > lat[0], f'Latitude is south of the contiguous United States ({pair[0]}, {pair[1]})'
+            assert float(pair[1]) < lat[1], f'Latitude is north of the contiguous United States ({pair[0]}, {pair[1]})'
+        return v
+
     @validator('day')
     def day_must_be_in_month(cls, v, values, **kwargs):
         '''Validate that the day is valid for the month''' 
@@ -78,9 +139,8 @@ class GasItem(BaseModel):
                               day = v)
         except:
             m = values['month']
-            raise ValueError(f'Too many days for the month: {m}')
+            raise ValueError(f'{v} is too many days for the month: {m}')
         return v
-
 
 @router.on_event('startup')
 async def load_models():
