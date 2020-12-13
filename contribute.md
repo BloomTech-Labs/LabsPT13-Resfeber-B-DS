@@ -8,7 +8,8 @@ MAPBOX_TOKEN=urmapboxtokenhere
 ```
 Best practice is to create a `.env` file in the main directory, and let 
 docker-compose handle importing the environment variables for local deployments. 
-For remote docker deployments
+`.env` is ignored for elastic beanstalk, and environment variables will need to 
+be set up on the eb console.
 
 ## References
 [AWS Elastic Beanstalk environment variables](https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/create_deploy_docker.container.console.html#docker-env-cfg.env-variables)  
