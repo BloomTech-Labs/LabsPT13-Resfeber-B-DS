@@ -10,6 +10,7 @@ import pickle
 import os
 from sklearn.linear_model import LinearRegression
 import requests
+import datetime
 ################################################################################
 
 log = logging.getLogger(__name__)
@@ -59,14 +60,27 @@ class GasItem(BaseModel):
     '''
     Use this data model to parse the request body JSON for gas predictions.
     '''
-
+    # ref https://pydantic-docs.helpmanual.io/usage/types/
+    # & https://github.com/samuelcolvin/pydantic/blob/master/pydantic/fields.py
     coords: str = Field(..., example = '-122.3321,47.6062;-116.2023,43.6150;-115.1398,36.1699')
+    year: int = Field(..., example = 2021)
     month: int = Field(..., gt = 0, le = 12, example = 7)
     day: int = Field(..., gt = 0, le = 31, example = 13)
-    year: int = Field(..., example = 2021)
     mpg: Optional[float] = Field(27.0, gt = 0.0, example = 27.0)
 
-    # TODO: Put in validators here. We are doing this live for first attempt
+    # ref https://pydantic-docs.helpmanual.io/usage/validators/
+    @validator('day')
+    def day_must_be_in_month(cls, v, values, **kwargs):
+        '''Validate that the day is valid for the month''' 
+        try:
+            datetime.datetime(year = values['year'],
+                              month = values['month'], 
+                              day = v)
+        except:
+            m = values['month']
+            raise ValueError(f'Too many days for the month: {m}')
+        return v
+
 
 @router.on_event('startup')
 async def load_models():
@@ -157,10 +171,6 @@ async def predict_gas(item: GasItem):
         regional_rate = region_gas_predictions(region, month, day, year)
         total += (miles / mpg) * regional_rate
 
-        # print(region)
-        # print(miles)
-        # print(regional_rate)
-
     resp['total'] = round(total, 2)
     return resp
 
@@ -171,7 +181,7 @@ async def test():
     TODO: Remove once branch is complete
     '''
 
-    return str(split_by_region('-122.3321,47.6062;-116.2023,43.6150;-115.1398, 36.1699'))
+    return str(split_by_region('-122.3321,47.6062;-116.2023,43.6150;-115.1398,36.1699'))
 
 def coord_to_state(coord):
     '''
