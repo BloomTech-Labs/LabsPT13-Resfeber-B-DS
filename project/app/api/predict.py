@@ -60,11 +60,11 @@ class GasItem(BaseModel):
     Use this data model to parse the request body JSON for gas predictions.
     '''
 
-    coords: str = Field(..., example='-122.3321,47.6062;-116.2023,43.6150;-115.1398, 36.1699')
-    month: int = Field(..., example = 7)
-    day: int = Field(..., example = 13)
+    coords: str = Field(..., example = '-122.3321,47.6062;-116.2023,43.6150;-115.1398,36.1699')
+    month: int = Field(..., gt = 0, le = 12, example = 7)
+    day: int = Field(..., gt = 0, le = 31, example = 13)
     year: int = Field(..., example = 2021)
-    mpg: Optional[float] = 27.0
+    mpg: Optional[float] = Field(27.0, gt = 0.0, example = 27.0)
 
     # TODO: Put in validators here. We are doing this live for first attempt
 
@@ -179,7 +179,8 @@ def coord_to_state(coord):
     MapBox api. USA coordinates only.
 
     ### Params
-    - `coord`: a tuple of floats representing a (long, lat) pair of geocoordinates
+    - `coord`: a tuple of floats representing a (long, lat) pair of 
+    geocoordinates
 
     ### Returns
     - A string with the name of the state the coordinates are within
@@ -207,7 +208,8 @@ def coord_to_region(coord):
     PADD region identifier key, ie 1a, 3, 1c, etc
 
     ### Params
-    - `coord`: a tuple of floats representing a (long, lat) pair of geocoordinates
+    - `coord`: a tuple of floats representing a (long, lat) pair of 
+    geocoordinates
 
     ### Returns
     - A string with the PADD region identifier
