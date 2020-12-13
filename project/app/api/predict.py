@@ -11,6 +11,7 @@ import os
 from sklearn.linear_model import LinearRegression
 import requests
 import datetime
+from time import sleep
 ################################################################################
 
 log = logging.getLogger(__name__)
@@ -218,10 +219,10 @@ def coord_to_state(coord):
     
     # search for the region feature
     resp = requests.get(constructed_url).json()['features']
+    #600 per minute rate limit
+    sleep(0.001666)
 
     # TODO: add retry logic incase this service is down
-    # TODO: Consider rate limit logic here
-    # TODO: try except for coords outside of the US
     
     for feature in resp:
         if 'region' in feature['place_type']:
