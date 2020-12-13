@@ -138,8 +138,8 @@ async def predict_gas(item: GasItem):
     a default value
 
     ### Response
-    - `prediction`: a float with the total cost of of gas for the entire length
-    of the trip.
+    - `total`: a float with the total cost of of gas predicted for the entire 
+    length of the trip.
     '''
     month = item.month
     day = item.day
@@ -148,6 +148,8 @@ async def predict_gas(item: GasItem):
     mpg = item.mpg
     total = 0
     distance_in_region = split_by_region(item.coords)
+
+    resp = {}
 
     for i, distance in enumerate(distance_in_region['distances']):
         region = distance_in_region['regions'][i]
@@ -159,8 +161,8 @@ async def predict_gas(item: GasItem):
         # print(miles)
         # print(regional_rate)
 
-    return round(total, 2)
-
+    resp['total'] = round(total, 2)
+    return resp
 
 @router.get('/test')
 async def test():
