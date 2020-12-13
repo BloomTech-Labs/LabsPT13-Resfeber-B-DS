@@ -10,6 +10,6 @@ Best practice is to create a `.env` file in the main directory, and let
 docker-compose handle importing the environment variables for local deployments. 
 For remote docker deployments
 
-#### References
+## References
 [AWS Elastic Beanstalk environment variables](https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/create_deploy_docker.container.console.html#docker-env-cfg.env-variables)  
 [docker-compose environment variables](https://docs.docker.com/compose/environment-variables/)  
