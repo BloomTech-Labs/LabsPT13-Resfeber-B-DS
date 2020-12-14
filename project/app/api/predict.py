@@ -1,7 +1,7 @@
 import logging
 import random
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 import pandas as pd
 from pydantic import BaseModel, Field, validator
 ####################For Gas Models##############################################
@@ -16,8 +16,6 @@ from time import sleep, time
 
 log = logging.getLogger(__name__)
 router = APIRouter()
-
-
 
 GAS_MODELS = {}
 PADDS = {'1a': 
@@ -90,9 +88,7 @@ class GasItem(BaseModel):
         split = [i.split(',') for i in split]
 
         for pair in split:
-            # This isn't a big deal, because coords_are_paired has already run
-            # and if there were anything other than exactly two values, it would
-            # have been caught
+            # coords_are_paired has already run. Pairs are exactly 2
             assert float(pair[0]) >= -180, f'Longitude must be greater than -180 ({pair[0]}, {pair[1]})'
             assert float(pair[0]) <= 180, f'Longitude must be less than 180 ({pair[0]}, {pair[1]})'
             assert float(pair[1]) >= -90, f'Latitude must be greater than -90 ({pair[0]}, {pair[1]})'
@@ -188,21 +184,23 @@ async def predict_gas(item: GasItem):
     for i, distance in enumerate(distance_in_region['distances']):
         region = distance_in_region['regions'][i]
         miles = distance * meter_to_mile
-        regional_rate = region_gas_predictions(region, month, day, year)
+
+        try:
+            # This try catch is here because I validated coordinates are in the
+            # contiguous USA by a simple bounding rectangle. It is possible to
+            # put locations within this bounding box, but outside of the USA
+            # proper. Like coordinates in the ocean, or just barely over the
+            # border. With more time, I'd hone my input validators to be more
+            # precise, but this works too.
+            # Example: Ottawa CA (-75.995000, 45.424721)
+            regional_rate = region_gas_predictions(region, month, day, year)
+        except:
+            detail = 'At least one coordinate lays outside the contiguous USA'
+            raise HTTPException(status_code = 422, detail = detail)
         total += (miles / mpg) * regional_rate
 
     resp['total'] = round(total, 2)
     return resp
-
-# @router.get('/test')
-# async def test():
-#     '''
-#     A very simple test get request used for ad hoc testing. Good for helper
-#     functions
-#     TODO: Remove once branch is complete
-#     '''
-
-#     return str(split_by_region('-122.3321,47.6062;-116.2023,43.6150;-115.1398,36.1699'))
 
 class RateLimiter():
     '''
@@ -277,8 +275,6 @@ def coord_to_state(coord):
     backoff_factor = .3
     backoff = backoff_factor * (2 ** (tries - 1)) #4.8 seconds
     wait = 0.0
-
-    #resp = requests.get(constructed_url).json()['features']
     for i in range(tries):
         GEOCODE_API_LIMITER.call()
         resp = requests.get(constructed_url)
@@ -292,7 +288,8 @@ def coord_to_state(coord):
             resp = resp.json()['features']
             break
 
-    # response contains multiple features, state names stored as 'region'
+    # response contains multiple types of features, but the name of the state
+    # is only stored as a 'region' place_type.
     for feature in resp:
         if 'region' in feature['place_type']:
             return feature['text']
@@ -333,9 +330,6 @@ def region_gas_predictions(region, month, day, year):
     - a float representing the price per gallon for gasoline in that region on
     that date
     '''
-    # TODO: check for missing regions or 'Not in padds'
-    # TODO: validate month, day, year for inappropriate input
-    # TODO: Throw a 500 error, and meaningful error log
     return GAS_MODELS[region].predict([[month, day, year]])[0]
 
 def split_by_region(coords):
@@ -362,6 +356,10 @@ def split_by_region(coords):
     token = os.environ.get('MAPBOX_TOKEN')
     url = 'https://api.mapbox.com/directions/v5/mapbox/driving?access_token='
     url += token
+
+    # This wouldn't be necessary if we had ratelimits set on our api.
+    global DIRECTIONS_API_LIMITER
+    DIRECTIONS_API_LIMITER.call()
 
     trip = requests.post(url, data = route)
 
