@@ -11,7 +11,7 @@ import os
 from sklearn.linear_model import LinearRegression
 import requests
 import datetime
-from time import sleep
+from time import sleep, time
 ################################################################################
 
 log = logging.getLogger(__name__)
@@ -201,6 +201,43 @@ async def predict_gas(item: GasItem):
 #     '''
 
 #     return str(split_by_region('-122.3321,47.6062;-116.2023,43.6150;-115.1398,36.1699'))
+
+class RateLimiter():
+    '''
+    A helper class for respecting api rate limits and taking into account 
+    runtime. Best practice to create a new instance for each endpoint you are
+    querying.
+
+    ### Params
+    - `rate`: an integer representing the number of calls allowed per minute
+    - `endpoint`: a string containing the endpoint name. I recommend putting 
+    the endpoint url here for clarity. But basically anything to help you 
+    remember.
+    '''
+    def __init__(self, rate, endpoint = 'RateLimiter'):
+        self._calls = 0
+        self._timer = 0
+        self.rate  = rate
+        self.endpoint = endpoint
+
+    def call(self):
+        '''
+        Logs a call to the endpoint and verifies the total calls for the last 
+        minute are under the api's rate limit. Sleeps to respect the ratelimit.
+        '''
+
+        self._calls += 1
+
+        if self._timer == 0:
+            self._timer = time()
+
+        if self._calls >= self.rate:
+            elapsed = time() - self._timer
+            if elapsed <= 60.0:
+                remaining = 60.0 - elapsed
+                sleep(remaining)
+            self._calls = 0
+            self._timer = time()
 
 def coord_to_state(coord):
     '''
