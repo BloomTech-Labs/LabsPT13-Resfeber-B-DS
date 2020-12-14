@@ -155,7 +155,8 @@ async def load_models():
 @router.post('/predict/gas', tags = ['Predictions'])
 async def predict_gas(item: GasItem):
     '''
-    Predicts the total cost of gas for a road trip between coordinates. 
+    Predicts the total cost of gas for a road trip between coordinates within 
+    the contiguous United States.
 
     ### Request Body
     - `coords`: a string of semicolon separated coordinate pairs formated as 
@@ -217,17 +218,29 @@ def coord_to_state(coord):
     token = os.environ.get('MAPBOX_TOKEN')
     constructed_url = base_url + str(coord[0]) + ',' + str(coord[1]) + '.json?access_token=' + token
     
-    # search for the region feature
-    resp = requests.get(constructed_url).json()['features']
-    #600 per minute rate limit
-    sleep(0.001666)
+    # 5 tries, with back off, for 500, 502, 503, 504, no custom mapbox errors
+    tries = 5
+    backoff_factor = .3
+    backoff = backoff_factor * (2 ** (tries - 1)) #4.8 seconds
+    wait = 0.0
+    for i in range(tries):
+        resp = requests.get(constructed_url)
 
-    # TODO: add retry logic incase this service is down
-    
+        if resp.status_code in [500, 502, 503, 504]:
+            print(f'Mapbox geocoding endpoint down retry #{i}')
+            sleep(wait)
+            wait += backoff
+            continue
+        else:
+            resp = resp.json()['features']
+
+    # response contains multiple features, state names stored as 'region'
     for feature in resp:
         if 'region' in feature['place_type']:
+            sleep(0.001666) # 600 per minute rate limit
             return feature['text']
     
+    sleep(0.001666) # 600 per minute rate limit
     return 'state not found'
 
 def coord_to_region(coord):
