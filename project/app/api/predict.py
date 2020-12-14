@@ -17,6 +17,8 @@ from time import sleep, time
 log = logging.getLogger(__name__)
 router = APIRouter()
 
+
+
 GAS_MODELS = {}
 PADDS = {'1a': 
              ['Maine', 'New Hampshire', 'Vermont', 'Massachusetts', 
@@ -213,6 +215,11 @@ class RateLimiter():
     - `endpoint`: a string containing the endpoint name. I recommend putting 
     the endpoint url here for clarity. But basically anything to help you 
     remember.
+
+    ### Usage
+    Instantiate the RateLimiter in global space, then globally declare them in
+    your functions where api calls are made, and run .call() just before making
+    a call to the api.
     '''
     def __init__(self, rate, endpoint = 'RateLimiter'):
         self._calls = 0
@@ -239,6 +246,14 @@ class RateLimiter():
             self._calls = 0
             self._timer = time()
 
+######################################Rate Limiters############################
+# TODO: Pop the rate limiter into its own module, and import it maybe? IDK, I'm
+# not a huge fan of globals declared here. Maybe declare under an if statement
+# in the function. But I like to see my globals. IDK think about this.
+GEOCODE_API_LIMITER = RateLimiter(rate = 600, endpoint = 'mapbox geocoding')
+DIRECTIONS_API_LIMITER = RateLimiter(rate = 300, endpoint ='mapbox directions')
+###############################################################################
+
 def coord_to_state(coord):
     '''
     A helper function that converts coordinates into state names using the 
@@ -255,12 +270,17 @@ def coord_to_state(coord):
     token = os.environ.get('MAPBOX_TOKEN')
     constructed_url = base_url + str(coord[0]) + ',' + str(coord[1]) + '.json?access_token=' + token
     
+    global GEOCODE_API_LIMITER
+
     # 5 tries, with back off, for 500, 502, 503, 504, no custom mapbox errors
     tries = 5
     backoff_factor = .3
     backoff = backoff_factor * (2 ** (tries - 1)) #4.8 seconds
     wait = 0.0
+
+    #resp = requests.get(constructed_url).json()['features']
     for i in range(tries):
+        GEOCODE_API_LIMITER.call()
         resp = requests.get(constructed_url)
 
         if resp.status_code in [500, 502, 503, 504]:
@@ -270,14 +290,13 @@ def coord_to_state(coord):
             continue
         else:
             resp = resp.json()['features']
+            break
 
     # response contains multiple features, state names stored as 'region'
     for feature in resp:
         if 'region' in feature['place_type']:
-            sleep(0.001666) # 600 per minute rate limit
             return feature['text']
     
-    sleep(0.001666) # 600 per minute rate limit
     return 'state not found'
 
 def coord_to_region(coord):
