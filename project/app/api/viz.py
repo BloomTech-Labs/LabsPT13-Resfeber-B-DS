@@ -5,7 +5,7 @@ import plotly.express as px
 router = APIRouter()
 
 
-@router.get('/viz/{statecode}')
+@router.get('/viz/{statecode}', tags = ['Visualizations'])
 async def viz(statecode: str):
     """
     Visualize state unemployment rate from [Federal Reserve Economic Data](https://fred.stlouisfed.org/) 📈
