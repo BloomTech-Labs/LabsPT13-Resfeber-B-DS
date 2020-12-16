@@ -235,7 +235,7 @@ async def predict_airbnb(item: AirbnbItem):
     
 #     result = AIRBNB_MODEL.predict([[lat, long, nights]])[0]
 #     return (result * nights)
-      return "airbnb endpoing"
+    return "airbnb endpoing"
 
 class RateLimiter():
     '''
