@@ -103,9 +103,10 @@ async def load_models():
     GAS_MODELS['4'] = pickle.load(open(rockymnt, 'rb'))
     GAS_MODELS['5'] = pickle.load(open(westcoast, 'rb'))
 
-    global AIRBNB_MODEL
-    Airbnb_pred_model = os.path.join(os.getcwd(), 'app', 'airbnb_models', 'airbnb_model1.pkl')
-    AIRBNB_MODEL = pickle.load(open(Airbnb_pred_model, 'rb'))
+    # uncomment when model is loaded
+#     global AIRBNB_MODEL
+#     Airbnb_pred_model = os.path.join(os.getcwd(), 'app', 'airbnb_models', 'airbnb_model1.pkl')
+#     AIRBNB_MODEL = pickle.load(open(Airbnb_pred_model, 'rb'))
 
 @router.post('/predict')
 async def predict(item: Item):
@@ -174,7 +175,7 @@ async def predict_gas(item: GasItem):
 
     return round(total, 2)
 
-@router.post('/predict/airbnb')
+@router.post('/predict/airbnb', tags = ['Predictions'])
 async def predict_airbnb(item: AirbnbItem):
     """
     Predicts the total cost of the airbnb for x nights for a length of stay.
@@ -186,12 +187,14 @@ async def predict_airbnb(item: AirbnbItem):
 
         Outputs: A float with the total cost of the airbnb cost for the length of the stay
     """
-    lat = item.Airbnb_lat
-    long = item.Airbnb_long
-    nights = item.Airbnb_nights
+    # uncomment when model is loaded
+#     lat = item.Airbnb_lat
+#     long = item.Airbnb_long
+#     nights = item.Airbnb_nights
     
-    result = AIRBNB_MODEL.predict([[lat, long, nights]])[0]
-    return (result * nights)
+#     result = AIRBNB_MODEL.predict([[lat, long, nights]])[0]
+#     return (result * nights)
+      return "airbnb endpoing"
 
 @router.get('/test')
 async def test():
