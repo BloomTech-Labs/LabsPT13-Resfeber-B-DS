@@ -124,6 +124,15 @@ class GasItem(BaseModel):
             raise ValueError(f'{v} is too many days for the month: {m}')
         return v
 
+class AirbnbItem(BaseModel):
+    """
+    Use this data model to parse the request body JSON for airbnb predictions.
+    # ToDo: add string coord compatibility. 
+    """
+    Airbnb_lat: int = Field(..., example= -122.3321)
+    Airbnb_long: int = Field(..., example =47.6062)
+    Airbnb_nights: int = Field(..., example = 4)
+
 @router.on_event('startup')
 async def load_models():
     '''
@@ -149,6 +158,11 @@ async def load_models():
     GAS_MODELS['3'] = pickle.load(open(gulfcoast, 'rb'))
     GAS_MODELS['4'] = pickle.load(open(rockymnt, 'rb'))
     GAS_MODELS['5'] = pickle.load(open(westcoast, 'rb'))
+
+    # uncomment when model is loaded
+#     global AIRBNB_MODEL
+#     Airbnb_pred_model = os.path.join(os.getcwd(), 'app', 'airbnb_models', 'airbnb_model1.pkl')
+#     AIRBNB_MODEL = pickle.load(open(Airbnb_pred_model, 'rb'))
 
 @router.post('/predict/gas', tags = ['Predictions'])
 async def predict_gas(item: GasItem):
@@ -201,6 +215,27 @@ async def predict_gas(item: GasItem):
 
     resp['total'] = round(total, 2)
     return resp
+
+@router.post('/predict/airbnb', tags = ['Predictions'])
+async def predict_airbnb(item: AirbnbItem):
+    """
+    Predicts the total cost of the airbnb for x nights for a length of stay.
+    
+    Params:
+        Inputs: Integer of destination's longitude, 
+                Integer of destination's latitude,
+                Integer of Number of nights stay
+
+        Outputs: A float with the total cost of the airbnb cost for the length of the stay
+    """
+    # uncomment when model is loaded
+#     lat = item.Airbnb_lat
+#     long = item.Airbnb_long
+#     nights = item.Airbnb_nights
+    
+#     result = AIRBNB_MODEL.predict([[lat, long, nights]])[0]
+#     return (result * nights)
+      return "airbnb endpoing"
 
 class RateLimiter():
     '''
