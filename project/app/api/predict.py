@@ -159,10 +159,9 @@ async def load_models():
     GAS_MODELS['4'] = pickle.load(open(rockymnt, 'rb'))
     GAS_MODELS['5'] = pickle.load(open(westcoast, 'rb'))
 
-    # uncomment when model is loaded
-#     global AIRBNB_MODEL
-#     Airbnb_pred_model = os.path.join(os.getcwd(), 'app', 'airbnb_models', 'airbnb_model1.pkl')
-#     AIRBNB_MODEL = pickle.load(open(Airbnb_pred_model, 'rb'))
+    global AIRBNB_MODEL
+    Airbnb_pred_model = os.path.join(os.getcwd(), 'app', 'airbnb_models', 'airbnb_model1.pckl')
+    AIRBNB_MODEL = pickle.load(open(Airbnb_pred_model, 'rb'))
 
 @router.post('/predict/gas', tags = ['Predictions'])
 async def predict_gas(item: GasItem):
@@ -228,14 +227,12 @@ async def predict_airbnb(item: AirbnbItem):
 
         Outputs: A float with the total cost of the airbnb cost for the length of the stay
     """
-    # uncomment when model is loaded
-#     lat = item.Airbnb_lat
-#     long = item.Airbnb_long
-#     nights = item.Airbnb_nights
+    lat = item.Airbnb_lat
+    long = item.Airbnb_long
+    nights = item.Airbnb_nights
     
-#     result = AIRBNB_MODEL.predict([[lat, long, nights]])[0]
-#     return (result * nights)
-    return "airbnb endpoing"
+    result = AIRBNB_MODEL.predict([[lat, long, nights]])[0]
+    return (result * nights)
 
 class RateLimiter():
     '''
